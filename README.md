@@ -1,4 +1,4 @@
-# discord-linkedin-frame
+# linkedin-frame
 
 Apply LinkedIn-style circular frames with custom arc text to profile pictures — as a **Discord bot** and as a **browser-based web app** (hosted on GitHub Pages).
 
@@ -10,7 +10,7 @@ Supports both static images and animated GIFs.
 
 **https://jxl-s.github.io/linkedin-frame/**
 
-Upload any image or GIF, pick a color and arc text, and download the result. No Discord account required.
+Upload any image or GIF, pick a color and arc text, and download the result.
 
 ## Discord bot
 
