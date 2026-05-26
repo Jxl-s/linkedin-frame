@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn Frame Generator</title>
+  <style>
+    @font-face {
+      font-family: 'Carlito';
+      src: url('assets/Carlito-Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-display: block;
+    }
+
+    /* Triggers the font download immediately so canvas gets it on first render */
+    .font-preload {
+      font-family: 'Carlito', sans-serif;
+      font-weight: bold;
+      position: fixed;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+      color: #e2e8f0;
+      background:
+        radial-gradient(ellipse 55% 55% at 12% 88%, rgba(69, 112, 50, 0.20) 0%, transparent 100%),
+        radial-gradient(ellipse 40% 40% at 88% 10%, rgba(96, 165, 250, 0.07) 0%, transparent 100%),
+        #08090e;
+      background-attachment: fixed;
+    }
+
+    /* ── Layout ── */
+    .app {
+      display: flex;
+      align-items: center;
+      gap: 4rem;
+      width: 100%;
+      max-width: 780px;
+    }
+
+    /* ── Left: avatar / preview ── */
+    .preview-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    /* Thin gradient ring around the avatar */
+    .avatar-ring {
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      padding: 2px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
+      cursor: pointer;
+    }
+
+    /* The actual circular drop target */
+    .drop-zone {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      background: rgba(255,255,255,0.03);
+      border: 2px dashed rgba(255,255,255,0.10);
+      transition: border-color 0.2s;
+    }
+
+    .drop-zone.drag-over { border-color: rgba(69, 112, 50, 0.9); }
+    .drop-zone.has-image { border: none; }
+
+    /* Invisible file input covers the whole circle */
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    /* Upload prompt — shown when no image; re-shown on hover when has-image */
+    .upload-prompt {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: opacity 0.2s, background 0.2s;
+    }
+
+    .upload-prompt .icon { color: #334155; }
+    .upload-prompt p { font-size: 0.75rem; color: #475569; }
+
+    /* After upload: hide the prompt normally, fade in on hover */
+    .has-image .upload-prompt { opacity: 0; }
+    .has-image:hover .upload-prompt {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .has-image:hover .upload-prompt .icon { color: #94a3b8; }
+    .has-image:hover .upload-prompt p { color: #94a3b8; }
+
+    /* On hover show "change photo" wording instead */
+    .upload-prompt .label-default { display: block; }
+    .upload-prompt .label-hover   { display: none;  }
+    .has-image:hover .upload-prompt .label-default { display: none;  }
+    .has-image:hover .upload-prompt .label-hover   { display: block; }
+
+    /* Canvas fills the circle; hidden until an image is loaded */
+    #preview-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      z-index: 1;
+    }
+    .has-image #preview-canvas { display: block; }
+
+    /* Download pill */
+    .dl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 1.3rem;
+      background: rgba(69, 112, 50, 0.12);
+      color: #86efac;
+      border: 1px solid rgba(69, 112, 50, 0.28);
+      border-radius: 99px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(6px);
+      transition: opacity 0.3s, transform 0.3s, background 0.15s;
+    }
+    .dl-btn.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .dl-btn:hover { background: rgba(69, 112, 50, 0.22); }
+    .dl-btn.encoding { opacity: 0.45 !important; pointer-events: none !important; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .dl-btn.encoding svg { animation: spin 0.9s linear infinite; }
+
+    /* ── Right: controls ── */
+    .controls-col { flex: 1; min-width: 0; }
+
+    .brand { margin-bottom: 2rem; }
+    .brand h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.2rem;
+    }
+    .brand p { font-size: 0.78rem; color: #4b5563; }
+
+    .field { margin-bottom: 1.1rem; }
+
+    .field label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 0.45rem;
+    }
+
+    .color-row { display: flex; gap: 0.45rem; }
+
+    input[type="color"] {
+      width: 42px;
+      height: 40px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      cursor: pointer;
+      padding: 3px;
+      flex-shrink: 0;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.575rem 0.85rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 0.875rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: rgba(69, 112, 50, 0.55);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .sep {
+      height: 1px;
+      background: rgba(255,255,255,0.05);
+      margin: 1.4rem 0;
+    }
+
+    /* Preset button */
+    .preset-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.65rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      color: #64748b;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .preset-btn:hover {
+      background: rgba(69, 112, 50, 0.13);
+      border-color: rgba(69, 112, 50, 0.3);
+      color: #86efac;
+    }
+    .preset-btn:hover .dot { background: #86efac; }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #457032;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    #status {
+      font-size: 0.72rem;
+      color: #f87171;
+      min-height: 1em;
+      margin-top: 1rem;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 620px) {
+      .app { flex-direction: column; gap: 2rem; }
+      .avatar-ring { width: 220px; height: 220px; }
+      .controls-col { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="font-preload" aria-hidden="true">.</div>
+
+  <div class="app">
+
+    <!-- Avatar / preview -->
+    <div class="preview-col">
+      <div class="avatar-ring">
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept="image/*" aria-label="Upload profile picture">
+
+          <div class="upload-prompt">
+            <div class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="1.5"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="label-default">Drop or click to upload</p>
+            <p class="label-hover">Click to change photo</p>
+          </div>
+
+          <canvas id="preview-canvas"></canvas>
+        </div>
+      </div>
+
+      <a class="dl-btn" id="download-btn" download="frame.png">
+        <svg id="dl-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span id="dl-label">Download PNG</span>
+      </a>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-col">
+      <div class="brand">
+        <h1>LinkedIn Frame</h1>
+        <p>Add a custom frame to any profile picture.</p>
+      </div>
+
+      <div class="field">
+        <label for="color-hex">Frame Color</label>
+        <div class="color-row">
+          <input type="color" id="color-picker" value="#457032" aria-label="Pick frame color">
+          <input type="text" id="color-hex" value="#457032" placeholder="#RRGGBB" style="flex:1">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="arc-text">Arc Text</label>
+        <input type="text" id="arc-text" value="#OPENTOWORK" placeholder="Text on the frame">
+      </div>
+
+      <div class="sep"></div>
+
+      <button class="preset-btn" id="preset-btn" type="button">
+        <span class="dot"></span>
+        Open to Work — LinkedIn green + #OPENTOWORK
+      </button>
+
+      <div id="status"></div>
+    </div>
+
+  </div>
+
+  <script src="js/vendor/omggif.js"></script>
+  <script src="js/vendor/gif.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
