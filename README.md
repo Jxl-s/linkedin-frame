@@ -1,6 +1,8 @@
 # discord-linkedin-frame
 
-A Discord bot that applies LinkedIn-style circular frames with arc text to user profile pictures. Supports both static images and animated GIFs.
+A Discord app that applies LinkedIn-style circular frames with arc text to user profile pictures. Supports both static images and animated GIFs.
+
+<img src=".github/images/example.webp" width="300"/>
 
 ## Commands
 
