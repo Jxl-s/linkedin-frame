@@ -22,6 +22,26 @@ Apply the LinkedIn `#OPENTOWORK` frame (green, `#457032`) to a user's profile pi
 
 ## Setup
 
+### Docker (recommended)
+
+**1. Create a `.env` file:**
+```
+DISCORD_TOKEN=your_bot_token_here
+```
+
+**2. Run with Docker Compose:**
+```bash
+docker compose up -d
+```
+
+Or with `docker run`:
+```bash
+docker build -t discord-linkedin-frame .
+docker run -d --restart unless-stopped -e DISCORD_TOKEN=your_bot_token_here discord-linkedin-frame
+```
+
+### Manual
+
 **1. Install dependencies**
 ```bash
 python3 -m venv .venv
