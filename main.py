@@ -42,6 +42,7 @@ async def on_ready():
 )
 async def frame_command(interaction: discord.Interaction, user: discord.User, color: str, text: str):
     await interaction.response.defer()
+    print(f"[frame-custom] {interaction.user} → target={user} color={color} text={text!r}")
 
     try:
         color_rgb = parse_color(color)
@@ -51,6 +52,7 @@ async def frame_command(interaction: discord.Interaction, user: discord.User, co
 
     data, ext = process_avatar(await fetch_avatar(user), color_rgb, text)
     await interaction.followup.send(file=discord.File(io.BytesIO(data), filename=f"frame.{ext}"))
+    print(f"[frame-custom] done → {ext}")
 
 
 @tree.command(name="frame-opentowork", description="Add the #OPENTOWORK LinkedIn frame to a user's profile picture")
@@ -59,9 +61,11 @@ async def frame_command(interaction: discord.Interaction, user: discord.User, co
 @app_commands.describe(user="The user whose profile picture to use")
 async def opentowork_command(interaction: discord.Interaction, user: discord.User):
     await interaction.response.defer()
+    print(f"[frame-opentowork] {interaction.user} → target={user}")
 
     data, ext = process_avatar(await fetch_avatar(user), LINKEDIN_GREEN, "#OPENTOWORK")
     await interaction.followup.send(file=discord.File(io.BytesIO(data), filename=f"opentowork.{ext}"))
+    print(f"[frame-opentowork] done → {ext}")
 
 
 client.run(TOKEN)
