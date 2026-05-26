@@ -20,7 +20,7 @@ def parse_color(hex_color: str) -> tuple[int, int, int]:
     return int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
 
 
-async def fetch_avatar(user: discord.Member) -> bytes:
+async def fetch_avatar(user: discord.User) -> bytes:
     animated = user.display_avatar.is_animated()
     fmt = "gif" if animated else "png"
     return await user.display_avatar.replace(size=1024, format=fmt).read()
@@ -33,12 +33,14 @@ async def on_ready():
 
 
 @tree.command(name="frame-custom", description="Apply a custom frame to a user's profile picture")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     user="The user whose profile picture to use",
     color="Frame color as a hex code (e.g. #5865F2)",
     text="Text to display on the arc",
 )
-async def frame_command(interaction: discord.Interaction, user: discord.Member, color: str, text: str):
+async def frame_command(interaction: discord.Interaction, user: discord.User, color: str, text: str):
     await interaction.response.defer()
 
     try:
@@ -52,8 +54,10 @@ async def frame_command(interaction: discord.Interaction, user: discord.Member, 
 
 
 @tree.command(name="frame-opentowork", description="Add the #OPENTOWORK LinkedIn frame to a user's profile picture")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(user="The user whose profile picture to use")
-async def opentowork_command(interaction: discord.Interaction, user: discord.Member):
+async def opentowork_command(interaction: discord.Interaction, user: discord.User):
     await interaction.response.defer()
 
     data, ext = process_avatar(await fetch_avatar(user), LINKEDIN_GREEN, "#OPENTOWORK")
