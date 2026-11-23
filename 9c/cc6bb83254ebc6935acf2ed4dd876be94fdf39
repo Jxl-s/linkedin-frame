@@ -1,0 +1,31 @@
+README.md
+  s_1b52fe0cd0e676::t_414fcb14d283a8 11,17,41-44,77-117,131,135,156,158,170,173
+api/discord.py
+  s_1b52fe0cd0e676::t_0088fc610c1469 1-151
+lib/commands.py
+  s_1b52fe0cd0e676::t_cca1d4a9d2b824 1-9
+main.py
+  s_1b52fe0cd0e676::t_f2b87aa31cf6b1 3-4,10,101-112
+requirements.txt
+  s_1b52fe0cd0e676::t_68c1363bbae68e 6
+tests/test_discord.py
+  s_1b52fe0cd0e676::t_9921c25c438a94 1-195
+vercel.json
+  s_1b52fe0cd0e676::t_95422e06857890 11-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9ccc6bb83254ebc6935acf2ed4dd876be94fdf39",
+  "prompts": {},
+  "sessions": {
+    "s_1b52fe0cd0e676": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209bd-8d3d-7422-af39-9aaa7b9c024b",
+        "model": "unknown"
+      },
+      "human_author": "Jia Xuan Li <77560326+Jxl-s@users.noreply.github.com>"
+    }
+  }
+}
