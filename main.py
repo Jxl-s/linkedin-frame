@@ -9,7 +9,7 @@ from lib.process import process_avatar
 load_dotenv()
 TOKEN = os.environ["DISCORD_TOKEN"]
 LINKEDIN_GREEN = (69, 112, 50)  # #457032
-WEBSITE_URL = "https://jxl-s.github.io/linkedin-frame/"
+WEBSITE_URL = "https://discord-linkedin-frame.vercel.app/"
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)

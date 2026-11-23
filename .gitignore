@@ -3,3 +3,5 @@
 assets/output*.png
 __pycache__/
 *.pyc
+.vercel/
+public/

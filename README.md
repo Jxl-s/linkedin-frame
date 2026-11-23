@@ -1,6 +1,6 @@
 # linkedin-frame
 
-Apply LinkedIn-style circular frames with custom arc text to profile pictures — as a **Discord bot** and as a **browser-based web app** (hosted on GitHub Pages).
+Apply LinkedIn-style circular frames with custom arc text to profile pictures — as a **Discord bot**, a **browser-based web app**, and a **serverless MCP tool** hosted on Vercel.
 
 Supports both static images and animated GIFs.
 
@@ -8,9 +8,48 @@ Supports both static images and animated GIFs.
 
 ## Web app
 
-**https://jxl-s.github.io/linkedin-frame/**
+**https://discord-linkedin-frame.vercel.app/**
 
 Upload any image or GIF, pick a color and arc text, and download the result.
+
+## MCP server
+
+Connect an MCP client using Streamable HTTP at **https://discord-linkedin-frame.vercel.app/api/mcp**.
+
+The `frame_avatar` tool calls the existing `lib.process.process_avatar` function:
+
+| Argument | Description |
+|-----------|-------------|
+| `image_base64` | Required raw base64 image bytes, without a `data:` URL prefix |
+| `color` | Six-digit hex color, default `#457032` |
+| `text` | Arc text (up to 80 characters), default `#OPENTOWORK` |
+
+The result is MCP image content: PNG for static images, GIF for animated images.
+Inputs are limited to 2 MiB, 30 frames, and 20 million total pixels; output is
+limited to 3 MiB before base64 encoding. Images are processed in memory without
+being stored. The endpoint is public and does not require authentication.
+
+### Deploy to Vercel
+
+Import this repository with the **Other** framework preset, or run:
+
+```bash
+vercel --prod
+```
+
+`vercel.json` copies only the web app's HTML, JavaScript, and assets into the
+static output directory and deploys `api/mcp.py` as a Python 3.12 function.
+No environment variables are required for the website or MCP server. The Discord
+bot continues to run separately; do not add its `DISCORD_TOKEN` to Vercel.
+
+For local MCP development and tests, after installing the dependencies below:
+
+```bash
+.venv/bin/python -m uvicorn api.mcp:app --reload
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+The local endpoint is `http://localhost:8000/api/mcp`.
 
 ## Discord bot
 
@@ -85,4 +124,7 @@ index.html        # Web app
 js/
   app.js          # Web app logic (mirrors lib/ in the browser)
   vendor/         # gif.js, gif.worker.js, omggif.js
+api/mcp.py        # Stateless Streamable HTTP MCP server, reuses lib/process.py
+vercel.json       # Static web output and Python function configuration
+tests/test_mcp.py # MCP transport, image output, and validation tests
 ```
