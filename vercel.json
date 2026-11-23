@@ -8,6 +8,10 @@
     "api/mcp.py": {
       "maxDuration": 60,
       "includeFiles": "{lib/**,assets/**}"
+    },
+    "api/discord.py": {
+      "maxDuration": 60,
+      "includeFiles": "{lib/**,assets/**}"
     }
   }
 }

@@ -1,26 +1,20 @@
 import io
 import os
+import asyncio
+import sys
 import discord
 from dotenv import load_dotenv
 from discord import app_commands
 
 from lib.process import process_avatar
+from lib.commands import LINKEDIN_GREEN, WEBSITE_URL, parse_color
 
 load_dotenv()
 TOKEN = os.environ["DISCORD_TOKEN"]
-LINKEDIN_GREEN = (69, 112, 50)  # #457032
-WEBSITE_URL = "https://discord-linkedin-frame.vercel.app/"
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-
-
-def parse_color(hex_color: str) -> tuple[int, int, int]:
-    hex_color = hex_color.lstrip("#")
-    if len(hex_color) != 6:
-        raise ValueError(f"Expected 6 hex digits, got {len(hex_color)}")
-    return int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
 
 
 async def fetch_avatar(user: discord.User) -> bytes:
@@ -104,4 +98,15 @@ async def opentowork_command(interaction: discord.Interaction, user: discord.Use
     print(f"[frame-opentowork] done → {ext}")
 
 
-client.run(TOKEN)
+async def sync_commands():
+    async with client:
+        await client.login(TOKEN)
+        commands = await tree.sync()
+        print(f"Registered {len(commands)} slash commands over HTTP.")
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--sync-commands"]:
+        asyncio.run(sync_commands())
+    else:
+        client.run(TOKEN)

@@ -8,13 +8,13 @@ Supports both static images and animated GIFs.
 
 ## Web app
 
-**https://discord-linkedin-frame.vercel.app/**
+**https://linkedin-frame.vercel.app/**
 
 Upload any image or GIF, pick a color and arc text, and download the result.
 
 ## MCP server
 
-Connect an MCP client using Streamable HTTP at **https://discord-linkedin-frame.vercel.app/api/mcp**.
+Connect an MCP client using Streamable HTTP at **https://linkedin-frame.vercel.app/api/mcp**.
 
 The `frame_avatar` tool calls the existing `lib.process.process_avatar` function:
 
@@ -38,9 +38,10 @@ vercel --prod
 ```
 
 `vercel.json` copies only the web app's HTML, JavaScript, and assets into the
-static output directory and deploys `api/mcp.py` as a Python 3.12 function.
-No environment variables are required for the website or MCP server. The Discord
-bot continues to run separately; do not add its `DISCORD_TOKEN` to Vercel.
+static output directory and deploys `api/mcp.py` and `api/discord.py` as Python
+3.12 functions. No environment variables are required for the website or MCP
+server. Discord interactions require only `DISCORD_PUBLIC_KEY`; keep the bot's
+`DISCORD_TOKEN` local for command registration.
 
 For local MCP development and tests, after installing the dependencies below:
 
@@ -73,7 +74,47 @@ Apply the LinkedIn `#OPENTOWORK` frame (green, `#457032`) to a user's profile pi
 
 ### Setup
 
-#### Docker (recommended)
+#### Vercel HTTP interactions (recommended)
+
+The hosted bot receives slash commands at:
+
+**https://linkedin-frame.vercel.app/api/discord**
+
+It does not open a Gateway connection or require a continuously running bot
+process. Requests are verified with Discord's Ed25519 public key. Commands are
+acknowledged immediately with a deferred response, then the result is uploaded
+to the original response over HTTP. PNG and animated GIF avatars are supported,
+including server-specific avatars and Discord's default avatars.
+
+To configure another deployment:
+
+1. Set `DISCORD_PUBLIC_KEY` in Vercel's production environment using the public
+   key from your application's General Information page in the Discord Developer
+   Portal, then deploy.
+2. Set the application's **Interactions Endpoint URL** to your deployment's
+   `/api/discord` URL. Discord verifies the endpoint with a signed ping.
+3. Register or update the slash commands locally, using `DISCORD_TOKEN` in `.env`:
+
+   ```bash
+   .venv/bin/python main.py --sync-commands
+   ```
+
+Command registration uses REST and exits without connecting to the Gateway.
+After configuring the endpoint, stop the old Gateway bot process if it is still
+running. Interaction delivery switches from Gateway to HTTP for the application.
+
+The serverless handler accepts up to 80 arc-text characters and avatars up to
+8 MiB, 120 frames, and 100 million total input pixels. Work must finish within
+the function's 60-second lifetime; processing failures update the deferred
+response with an error. Images are processed in memory and are not stored.
+
+For local development, export `DISCORD_PUBLIC_KEY` and run:
+
+```bash
+.venv/bin/python -m uvicorn api.discord:app --reload
+```
+
+#### Docker (optional Gateway mode)
 
 **1. Create a `.env` file:**
 ```
@@ -87,11 +128,11 @@ docker compose up -d
 
 This starts both the Discord bot and an nginx web server for the web app on port `8080`.
 
-#### Manual
+#### Manual Gateway mode
 
 **1. Install dependencies**
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
@@ -112,8 +153,9 @@ Slash commands are synced globally on startup.
 ## Project structure
 
 ```
-main.py           # Discord bot entry point and slash commands
+main.py           # Optional Gateway bot; --sync-commands registers commands via REST
 lib/
+  commands.py     # Shared frame colors, website URL, and color parsing
   frame.py        # Applies colored ring frame using assets/alpha.png
   text.py         # Renders text along a circular arc
   process.py      # Combines frame + text, handles static and animated GIFs
@@ -125,6 +167,8 @@ js/
   app.js          # Web app logic (mirrors lib/ in the browser)
   vendor/         # gif.js, gif.worker.js, omggif.js
 api/mcp.py        # Stateless Streamable HTTP MCP server, reuses lib/process.py
+api/discord.py    # Signed Discord HTTP interactions and deferred image replies
 vercel.json       # Static web output and Python function configuration
 tests/test_mcp.py # MCP transport, image output, and validation tests
+tests/test_discord.py # Discord signatures, command dispatch, and PNG/GIF replies
 ```
