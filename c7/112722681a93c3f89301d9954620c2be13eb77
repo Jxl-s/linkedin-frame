@@ -1,0 +1,27 @@
+.python-version
+  s_1b52fe0cd0e676::t_19387a4684d311 1
+api/mcp.py
+  s_1b52fe0cd0e676::t_df649e01d02562 1-70
+requirements.txt
+  s_1b52fe0cd0e676::t_051099cc3ecac3 5
+tests/test_mcp.py
+  s_1b52fe0cd0e676::t_6c449ddf26ae7e 1-93
+vercel.json
+  s_1b52fe0cd0e676::t_620509474fe600 1-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7112722681a93c3f89301d9954620c2be13eb77",
+  "prompts": {},
+  "sessions": {
+    "s_1b52fe0cd0e676": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209bd-8d3d-7422-af39-9aaa7b9c024b",
+        "model": "unknown"
+      },
+      "human_author": "Jia Xuan Li <77560326+Jxl-s@users.noreply.github.com>"
+    }
+  }
+}
