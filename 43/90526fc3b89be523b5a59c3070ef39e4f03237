@@ -1,0 +1,27 @@
+.dockerignore
+  s_1b52fe0cd0e676::t_40ac43af1c67b8 1-5
+Dockerfile
+  s_1b52fe0cd0e676::t_d2bf48d704cb26 10-12
+api/mcp.py
+  s_1b52fe0cd0e676::t_fd23265c562d1d 60
+docker-compose.yml
+  s_1b52fe0cd0e676::t_718db4fa3db950 2,5-6,8-9
+docker_app.py
+  s_1b52fe0cd0e676::t_1ac7dacc390caf 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4390526fc3b89be523b5a59c3070ef39e4f03237",
+  "prompts": {},
+  "sessions": {
+    "s_1b52fe0cd0e676": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209bd-8d3d-7422-af39-9aaa7b9c024b",
+        "model": "unknown"
+      },
+      "human_author": "Jia Xuan Li <77560326+Jxl-s@users.noreply.github.com>"
+    }
+  }
+}
