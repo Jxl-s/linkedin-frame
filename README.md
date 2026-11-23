@@ -4,6 +4,11 @@ Apply LinkedIn-style circular frames with custom arc text to profile pictures â€
 
 Supports both static images and animated GIFs.
 
+The web app and Python image processor center-crop images without stretching.
+PNG and GIF exports are square, with each side equal to the smaller original
+dimension. GIF timing is preserved, and Discord GIF avatars are fetched without
+requesting an enlarged 1024px version. Re-encoding can still change file size.
+
 <img src=".github/images/example.webp" width="300"/> <img src=".github/images/example2.webp" width="300"/>
 
 ## Web app
@@ -114,19 +119,42 @@ For local development, export `DISCORD_PUBLIC_KEY` and run:
 .venv/bin/python -m uvicorn api.discord:app --reload
 ```
 
-#### Docker (optional Gateway mode)
+#### Docker HTTP server
 
 **1. Create a `.env` file:**
 ```
-DISCORD_TOKEN=your_bot_token_here
+DISCORD_PUBLIC_KEY=your_application_public_key
 ```
 
 **2. Run with Docker Compose:**
 ```bash
-docker compose up -d
+docker compose up --build -d --remove-orphans
 ```
 
-This starts both the Discord bot and an nginx web server for the web app on port `8080`.
+One container serves all three endpoints:
+
+| URL | Purpose |
+|-----|---------|
+| `http://localhost:8080/` | Web app |
+| `http://localhost:8080/api/discord` | Signed Discord interactions |
+| `http://localhost:8080/api/mcp` | Streamable HTTP MCP server |
+
+The runtime needs only the public key. The bot token is not passed to the
+container. `--remove-orphans` removes the old Gateway bot service when upgrading
+an existing Compose deployment.
+
+To receive Discord interactions on this container, expose port 8080 through a
+public HTTPS reverse proxy or tunnel and configure that URL's `/api/discord` as
+the application's Interactions Endpoint URL. This switches command delivery
+away from Vercel. If exposing MCP on a public hostname, also set
+`MCP_HOST=your-domain.example` in `.env` so its host and origin checks accept it.
+
+To register commands without installing Python locally, export `DISCORD_TOKEN`
+in your shell and run:
+
+```bash
+docker compose run --rm --env DISCORD_TOKEN web python main.py --sync-commands
+```
 
 #### Manual Gateway mode
 
@@ -168,6 +196,7 @@ js/
   vendor/         # gif.js, gif.worker.js, omggif.js
 api/mcp.py        # Stateless Streamable HTTP MCP server, reuses lib/process.py
 api/discord.py    # Signed Discord HTTP interactions and deferred image replies
+docker_app.py     # Combined website, Discord, and MCP application for Docker
 vercel.json       # Static web output and Python function configuration
 tests/test_mcp.py # MCP transport, image output, and validation tests
 tests/test_discord.py # Discord signatures, command dispatch, and PNG/GIF replies

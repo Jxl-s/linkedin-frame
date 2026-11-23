@@ -122,8 +122,8 @@ class DiscordEndpointTests(unittest.TestCase):
 
     def test_avatar_variants_and_colors(self):
         user = {"id": "456", "avatar": "a_global", "discriminator": "0"}
-        self.assertIn("/avatars/456/a_global.gif?", avatar_url(user, {}, None))
-        self.assertIn("/guilds/123/users/456/avatars/a_guild.gif?", avatar_url(user, {"avatar": "a_guild"}, "123"))
+        self.assertEqual(avatar_url(user, {}, None), "https://cdn.discordapp.com/avatars/456/a_global.gif")
+        self.assertEqual(avatar_url(user, {"avatar": "a_guild"}, "123"), "https://cdn.discordapp.com/guilds/123/users/456/avatars/a_guild.gif")
         self.assertEqual(avatar_url({"id": str(5 << 22), "discriminator": "0"}, {}, None), "https://cdn.discordapp.com/embed/avatars/5.png")
         self.assertEqual(avatar_url({"id": "456", "discriminator": "1234"}, {}, None), "https://cdn.discordapp.com/embed/avatars/4.png")
         self.assertEqual(parse_color("#5865F2"), (88, 101, 242))
@@ -148,7 +148,7 @@ class AvatarResponse:
 class DiscordCompletionTests(unittest.IsolatedAsyncioTestCase):
     async def test_png_and_gif_are_uploaded_to_original_response(self):
         for animated in (False, True):
-            frames = [Image.new("RGB", (16, 16), color) for color in ("red", "blue")]
+            frames = [Image.new("RGB", (32, 16), color) for color in ("red", "blue")]
             buffer = io.BytesIO()
             if animated:
                 frames[0].save(buffer, format="GIF", save_all=True, append_images=frames[1:], duration=100)
@@ -167,7 +167,7 @@ class DiscordCompletionTests(unittest.IsolatedAsyncioTestCase):
             file = kwargs["attachments"][0]
             self.assertEqual(file.filename, "frame.gif" if animated else "frame.png")
             with Image.open(file.fp) as output:
-                self.assertEqual(output.size, (800, 800))
+                self.assertEqual(output.size, (16, 16))
                 self.assertEqual(getattr(output, "n_frames", 1), 2 if animated else 1)
             self.assertFalse(kwargs["allowed_mentions"].everyone)
             file.close()
@@ -189,6 +189,30 @@ class DiscordCompletionTests(unittest.IsolatedAsyncioTestCase):
         with patch("PIL.Image.open", return_value=source):
             with self.assertRaisesRegex(ValueError, "too large"):
                 render_avatar(b"image", LINKEDIN_GREEN, "Hello")
+
+
+class GatewayAvatarTests(unittest.IsolatedAsyncioTestCase):
+    async def test_animated_fetch_does_not_request_enlargement(self):
+        with patch.dict(os.environ, {"DISCORD_TOKEN": "test-token"}):
+            import main
+        for animated in (False, True):
+            with self.subTest(animated=animated):
+                extension = "gif" if animated else "png"
+                asset = MagicMock(url=f"https://cdn.discordapp.com/avatars/456/avatar.{extension}?size=1024")
+                asset.read = AsyncMock(return_value=b"static-avatar")
+                user = MagicMock()
+                user.display_avatar.is_animated.return_value = animated
+                user.display_avatar.replace.return_value = asset
+                with patch.object(main.client.http, "get_from_cdn", new_callable=AsyncMock, return_value=b"animated-avatar") as fetch:
+                    result = await main.fetch_avatar(user)
+                if animated:
+                    fetch.assert_awaited_once_with("https://cdn.discordapp.com/avatars/456/avatar.gif")
+                    asset.read.assert_not_awaited()
+                    self.assertEqual(result, b"animated-avatar")
+                else:
+                    fetch.assert_not_awaited()
+                    asset.read.assert_awaited_once()
+                    self.assertEqual(result, b"static-avatar")
 
 
 if __name__ == "__main__":

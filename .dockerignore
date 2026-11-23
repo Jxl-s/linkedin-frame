@@ -1,4 +1,8 @@
-.env
+.env*
+.venv
+.vercel
+public
+assets/output*.png
 __pycache__
 *.pyc
 *.pyo

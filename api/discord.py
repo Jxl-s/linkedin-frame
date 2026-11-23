@@ -29,7 +29,8 @@ def avatar_url(user, member, guild_id):
         path = f"avatars/{user['id']}/{avatar}"
         if member.get("avatar") and guild_id:
             path = f"guilds/{guild_id}/users/{user['id']}/avatars/{avatar}"
-        return f"https://cdn.discordapp.com/{path}.{extension}?size=1024"
+        url = f"https://cdn.discordapp.com/{path}.{extension}"
+        return url if extension == "gif" else f"{url}?size=1024"
     discriminator = int(user.get("discriminator", 0))
     index = discriminator % 5 if discriminator else (int(user["id"]) >> 22) % 6
     return f"https://cdn.discordapp.com/embed/avatars/{index}.png"

@@ -1,16 +1,10 @@
 services:
-  bot:
+  web:
     build: .
     environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-    restart: unless-stopped
-
-  web:
-    image: nginx:alpine
+      DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY:?Set DISCORD_PUBLIC_KEY in .env}
+      MCP_HOST: ${MCP_HOST:-}
     ports:
-      - "8080:80"
-    volumes:
-      - ./index.html:/usr/share/nginx/html/index.html:ro
-      - ./assets:/usr/share/nginx/html/assets:ro
-      - ./js:/usr/share/nginx/html/js:ro
+      - "8080:8000"
+    stop_grace_period: 60s
     restart: unless-stopped

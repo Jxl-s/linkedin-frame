@@ -45,6 +45,14 @@ function hexToRgb(hex) {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
+function drawCenteredSquare(ctx, image) {
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  const size = Math.min(width, height);
+  ctx.drawImage(image, (width - size) / 2, (height - size) / 2, size, size,
+    0, 0, ctx.canvas.width, ctx.canvas.height);
+}
+
 function scheduleRender() {
   cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(render);
@@ -254,7 +262,7 @@ function encodeGifFrames(processedFrames, W, H) {
       const ctx = flat.getContext('2d');
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, W, H);
-      ctx.drawImage(canvas, 0, 0);
+      ctx.drawImage(canvas, 0, 0, W, H);
       gif.addFrame(flat, { delay, copy: true });
     }
 
@@ -275,7 +283,7 @@ function processGifFrames(rgb, text, W, H) {
     out.width = W;
     out.height = H;
     const ctx = out.getContext('2d');
-    ctx.drawImage(canvas, 0, 0, W, H); // scale source frame to output size
+    drawCenteredSquare(ctx, canvas);
     applyFrame(ctx, rgb);
     applyArcText(ctx, text);
     return { canvas: out, delay };
@@ -298,12 +306,16 @@ function renderStatic() {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  ctx.drawImage(sourceImage, 0, 0, W, H);
+  drawCenteredSquare(ctx, sourceImage);
   applyFrame(ctx, rgb);
   applyArcText(ctx, document.getElementById('arc-text').value.trim());
 
   document.getElementById('drop-zone').classList.add('has-image');
-  setDlState('png', canvas.toDataURL('image/png'));
+  const size = Math.min(sourceImage.naturalWidth, sourceImage.naturalHeight);
+  const output = document.createElement('canvas');
+  output.width = output.height = size;
+  output.getContext('2d').drawImage(canvas, 0, 0, size, size);
+  setDlState('png', output.toDataURL('image/png'));
 }
 
 function renderGif() {
@@ -322,7 +334,9 @@ function renderGif() {
   document.getElementById('drop-zone').classList.add('has-image');
   setDlState('encoding');
 
-  encodeGifFrames(processed, W, H).then(blob => {
+  const { width, height } = rawGifFrames[0].canvas;
+  const size = Math.min(width, height);
+  encodeGifFrames(processed, size, size).then(blob => {
     setDlState('gif', URL.createObjectURL(blob));
   }).catch(err => {
     console.error('[gif encode]', err);

@@ -6,8 +6,8 @@ from unittest.mock import patch
 from PIL import Image
 from starlette.testclient import TestClient
 
-from api.mcp import MAX_IMAGE_BYTES, MAX_OUTPUT_BYTES, app
-from lib.frame import ALPHA_PATH
+from api.mcp import MAX_IMAGE_BYTES, MAX_OUTPUT_BYTES
+from docker_app import app
 
 
 def image_base64(animated=False, frames=2):
@@ -43,6 +43,22 @@ class MCPTests(unittest.TestCase):
     def call(self, **arguments):
         return self.rpc("tools/call", {"name": "frame_avatar", "arguments": arguments})
 
+    def test_website_and_assets(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("LinkedIn Frame Generator", response.text)
+        for path in ("/js/app.js", "/js/vendor/gif.worker.js", "/assets/alpha.png", "/assets/Carlito-Bold.ttf"):
+            self.assertEqual(self.client.get(path).status_code, 200, path)
+
+    def test_source_and_secrets_are_not_served(self):
+        for path in ("/.env", "/.git/config", "/main.py", "/api/discord.py", "/requirements.txt"):
+            self.assertEqual(self.client.get(path).status_code, 404, path)
+
+    def test_discord_endpoint_is_available(self):
+        with patch.dict("os.environ", {"DISCORD_PUBLIC_KEY": "0" * 64}):
+            response = self.client.post("/api/discord", json={"type": 1})
+        self.assertEqual(response.status_code, 401)
+
     def test_initialize_and_discover(self):
         result = self.rpc("initialize", {
             "protocolVersion": "2025-06-18", "capabilities": {},
@@ -53,8 +69,7 @@ class MCPTests(unittest.TestCase):
         self.assertEqual([tool["name"] for tool in tools], ["frame_avatar"])
 
     def test_png_and_gif(self):
-        with Image.open(ALPHA_PATH) as mask:
-            expected_size = mask.size
+        expected_size = (16, 16)
         for animated, extension in ((False, "png"), (True, "gif")):
             with self.subTest(extension=extension):
                 result = self.call(image_base64=image_base64(animated), color="#5865F2", text="Hello")

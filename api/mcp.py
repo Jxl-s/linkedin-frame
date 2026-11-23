@@ -57,7 +57,7 @@ def frame_avatar(
 
 
 hosts = ["localhost", "localhost:*", "127.0.0.1", "127.0.0.1:*"]
-hosts += [os.environ[key] for key in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL") if os.environ.get(key)]
+hosts += [os.environ[key] for key in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL", "MCP_HOST") if os.environ.get(key)]
 
 app = mcp.streamable_http_app(
     streamable_http_path="/api/mcp",

@@ -1,5 +1,5 @@
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 
 ALPHA_PATH = Path(__file__).parent.parent / "assets" / "alpha.png"
@@ -13,13 +13,13 @@ def apply_frame(image: Image.Image, color: tuple[int, int, int]) -> Image.Image:
 
     alpha.png is a grayscale image used as the frame's alpha mask:
     255 = fully opaque frame color, 0 = fully transparent (shows original image).
-    The image is resized to match alpha.png's dimensions if needed.
+    The image is center-cropped to a square, then resized to match alpha.png.
     Returns an RGBA image.
     """
     alpha_img = Image.open(ALPHA_PATH).convert("L")
     w, h = alpha_img.size
 
-    base = image.convert("RGBA").resize((w, h), Image.LANCZOS)
+    base = ImageOps.fit(image.convert("RGBA"), (w, h), method=Image.Resampling.LANCZOS)
 
     red_channel = np.array(alpha_img)  # shape (h, w), values 0-255
 

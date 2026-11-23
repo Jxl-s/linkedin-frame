@@ -20,7 +20,10 @@ tree = app_commands.CommandTree(client)
 async def fetch_avatar(user: discord.User) -> bytes:
     animated = user.display_avatar.is_animated()
     fmt = "gif" if animated else "png"
-    return await user.display_avatar.replace(size=1024, format=fmt).read()
+    avatar = user.display_avatar.replace(size=1024, format=fmt)
+    if animated:
+        return await client.http.get_from_cdn(avatar.url.split("?", 1)[0])
+    return await avatar.read()
 
 
 @client.event
