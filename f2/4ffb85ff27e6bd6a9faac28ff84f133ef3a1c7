@@ -1,0 +1,23 @@
+README.md
+  s_1b52fe0cd0e676::t_f7980ee513ad3c 33-38
+api/mcp.py
+  s_1b52fe0cd0e676::t_1a7eb9cf46a988 12-13,17-18,34-35,42,57,61-74,82,88
+tests/test_mcp.py
+  s_1b52fe0cd0e676::t_7b28c81f874ad4 26-35,50-51,112-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f24ffb85ff27e6bd6a9faac28ff84f133ef3a1c7",
+  "prompts": {},
+  "sessions": {
+    "s_1b52fe0cd0e676": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209bd-8d3d-7422-af39-9aaa7b9c024b",
+        "model": "unknown"
+      },
+      "human_author": "Jia Xuan Li <77560326+Jxl-s@users.noreply.github.com>"
+    }
+  }
+}
