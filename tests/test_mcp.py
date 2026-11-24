@@ -23,7 +23,16 @@ def image_base64(animated=False, frames=2):
 class MCPTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app, base_url="http://localhost:8000")
+        cls.response_chunks = []
+
+        async def observe_response(scope, receive, send):
+            async def observe_send(message):
+                if message["type"] == "http.response.body":
+                    cls.response_chunks.append(len(message.get("body", b"")))
+                await send(message)
+            await app(scope, receive, observe_send)
+
+        cls.client = TestClient(observe_response, base_url="http://localhost:8000")
         cls.client.__enter__()
 
     @classmethod
@@ -38,6 +47,8 @@ class MCPTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertNotIn("mcp-session-id", response.headers)
+        self.assertNotIn("content-length", response.headers)
+        self.assertIn("application/json", response.headers["content-type"])
         return response.json()["result"]
 
     def call(self, **arguments):
@@ -97,6 +108,22 @@ class MCPTests(unittest.TestCase):
     def test_oversized_result_is_tool_error(self):
         with patch("api.mcp.process_avatar", return_value=(b"x" * (MAX_OUTPUT_BYTES + 1), "png")):
             self.assertTrue(self.call(image_base64=image_base64())["isError"])
+
+    def test_accepts_three_mebibyte_input(self):
+        data = base64.b64decode(image_base64())
+        data += b"\0" * (MAX_IMAGE_BYTES - len(data))
+        result = self.call(image_base64=base64.b64encode(data).decode())
+        self.assertFalse(result.get("isError"), result)
+
+    def test_streams_ten_mebibyte_output(self):
+        self.response_chunks.clear()
+        with patch("api.mcp.process_avatar", return_value=(b"x" * MAX_OUTPUT_BYTES, "png")):
+            result = self.call(image_base64=image_base64())
+        self.assertFalse(result.get("isError"))
+        self.assertEqual(len(base64.b64decode(result["content"][0]["data"])), MAX_OUTPUT_BYTES)
+        self.assertGreater(sum(self.response_chunks), MAX_OUTPUT_BYTES)
+        self.assertGreater(len(self.response_chunks), 1)
+        self.assertLessEqual(max(self.response_chunks), 64 * 1024)
 
     def test_rejects_foreign_host_and_origin(self):
         for headers in ({"Host": "evil.example"}, {"Origin": "https://evil.example"}):

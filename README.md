@@ -30,9 +30,12 @@ The `frame_avatar` tool calls the existing `lib.process.process_avatar` function
 | `text` | Arc text (up to 80 characters), default `#OPENTOWORK` |
 
 The result is MCP image content: PNG for static images, GIF for animated images.
-Inputs are limited to 2 MiB, 30 frames, and 20 million total pixels; output is
-limited to 3 MiB before base64 encoding. Images are processed in memory without
-being stored. The endpoint is public and does not require authentication.
+Inputs are limited to 3 MiB, 30 frames, and 20 million total pixels; output is
+limited to 10 MiB before base64 encoding. JSON responses are streamed in chunks
+to support outputs above Vercel's buffered response limit. The request-body
+limit includes room for base64 expansion and the MCP envelope. Images are
+processed in memory without being stored. The endpoint is public and does not
+require authentication. MCP clients may impose their own response-size limits.
 
 ### Deploy to Vercel
 
